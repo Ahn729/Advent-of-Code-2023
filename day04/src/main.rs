@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, prelude::*};
 
@@ -14,18 +15,20 @@ impl Card {
     fn from_string(line: &str) -> Self {
         let number_regex = Regex::new(r"(\d+)").unwrap();
 
-        let parts: Vec<&str> = line.split(":").collect();
-        let number_split: Vec<&str> = parts.get(1).unwrap().split("|").collect();
-        let number: u32 = number_regex.captures(parts.get(0).unwrap())
+        let mut parts = line.split(':');
+
+        let number: u32 = number_regex.captures(parts.next().unwrap())
             .unwrap()
             .get(1)
             .unwrap().as_str().parse().unwrap();
 
-        let winning = number_regex.captures_iter(number_split.get(0).unwrap())
+        let mut number_split = parts.next().unwrap().split('|');
+
+        let winning = number_regex.captures_iter(number_split.next().unwrap())
             .map(|c| c.get(1).unwrap().as_str().parse::<u32>().unwrap())
             .collect();
 
-        let have = number_regex.captures_iter(number_split.get(1).unwrap())
+        let have = number_regex.captures_iter(number_split.next().unwrap())
             .map(|c| c.get(1).unwrap().as_str().parse::<u32>().unwrap())
             .collect();
 
@@ -35,18 +38,12 @@ impl Card {
     }
 
     fn get_n_winning(&self) -> u32 {
-
-        // This is highly inefficient (O(n²)), but fast enough
-        let mut counter: u32 = 0;
-        for number in &self.winning {
-            for have in &self.have {
-                if *have == *number {
-                    counter += 1;
-                    break;
-                }
-            }
-        }
-        counter
+        let winning: HashMap<u32, u32> = HashMap::from_iter(
+            self.winning.iter().map(|num| (*num, 1))
+        );
+        self.have.iter().map(
+            |num| *winning.get(num).unwrap_or(&0)
+        ).sum()
     }
 
     fn get_points_value(&self) -> u32 {
