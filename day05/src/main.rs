@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{BufReader, prelude::*};
 
 #[derive(Debug)]
-struct Slice {
+struct Interval {
     start: u64,
     end: u64
 }
@@ -26,39 +26,39 @@ impl Range {
     }
 
     // (unapplied, applied)
-    fn apply(&self, slice: &Slice) -> (Vec<Slice>, Vec<Slice>) {
-        if slice.start >= self.source_start_range + self.range_length || slice.end <= self.source_start_range {
-            return (vec![Slice { start: slice.start, end: slice.end }], Vec::new())
+    fn apply(&self, interval: &Interval) -> (Vec<Interval>, Vec<Interval>) {
+        if interval.start >= self.source_start_range + self.range_length || interval.end <= self.source_start_range {
+            return (vec![Interval { start: interval.start, end: interval.end }], Vec::new())
         }
-        if slice.start < self.source_start_range + self.range_length && slice.start >= self.source_start_range {
-              if slice.end <= self.source_start_range + self.range_length {
-                  return (Vec::new(), vec![Slice {
-                      start: slice.start - self.source_start_range + self.dest_start_range,
-                      end: slice.end - self.source_start_range + self.dest_start_range
+        if interval.start < self.source_start_range + self.range_length && interval.start >= self.source_start_range {
+              if interval.end <= self.source_start_range + self.range_length {
+                  return (Vec::new(), vec![Interval {
+                      start: interval.start - self.source_start_range + self.dest_start_range,
+                      end: interval.end - self.source_start_range + self.dest_start_range
                   }])
               } else {
                   return (vec![
-                      Slice { start: self.source_start_range + self.range_length, end: slice.end }
-                  ], vec![Slice {
-                      start: slice.start - self.source_start_range + self.dest_start_range,
+                      Interval { start: self.source_start_range + self.range_length, end: interval.end }
+                  ], vec![Interval {
+                      start: interval.start - self.source_start_range + self.dest_start_range,
                       end: self.dest_start_range + self.range_length
                   }])
               }
         }
-        // slice.start < self.source_start_range
+        // interval.start < self.source_start_range
         else {
-            if slice.end <= self.source_start_range + self.range_length {
+            if interval.end <= self.source_start_range + self.range_length {
                 return (vec![
-                    Slice { start: slice.start, end: self.source_start_range }
-                ], vec![Slice {
+                    Interval { start: interval.start, end: self.source_start_range }
+                ], vec![Interval {
                     start: self.dest_start_range,
-                    end: slice.end - self.source_start_range + self.dest_start_range
+                    end: interval.end - self.source_start_range + self.dest_start_range
                 }])
             } else {
                 return (vec![
-                    Slice { start: slice.start, end: self.source_start_range },
-                    Slice { start: self.source_start_range + self.range_length, end: slice.end },
-                ], vec![Slice {
+                    Interval { start: interval.start, end: self.source_start_range },
+                    Interval { start: self.source_start_range + self.range_length, end: interval.end },
+                ], vec![Interval {
                     start: self.dest_start_range,
                     end: self.dest_start_range + self.range_length
                 }])
@@ -84,15 +84,15 @@ impl Map {
         input
     }
 
-    fn apply_to_slices(&self, slices: Vec<Slice>) -> Vec<Slice> {
+    fn apply_to_intervals(&self, intervals: Vec<Interval>) -> Vec<Interval> {
         let mut applied = Vec::new();
-        let mut unapplied = slices;
+        let mut unapplied = intervals;
 
         for range in &self.ranges {
             let mut new_applied = Vec::new();
             let mut still_unapplied = Vec::new();
-            for slice in &unapplied {
-                let (mut unappl, mut appl) = range.apply(slice);
+            for interval in &unapplied {
+                let (mut unappl, mut appl) = range.apply(interval);
                 new_applied.append(&mut appl);
                 still_unapplied.append(&mut unappl);
             }
@@ -105,17 +105,17 @@ impl Map {
     }
 }
 
-fn apply_all_slices(maps: &Vec<Map>, mut slices: Vec<Slice>) -> Vec<Slice> {
+fn apply_all_intervals(maps: &Vec<Map>, mut intervals: Vec<Interval>) -> Vec<Interval> {
     let mut resource_name = String::from("seed");
     while resource_name != "location" {
         for map in maps {
             if map.from == resource_name {
                 resource_name = map.to.clone();
-                slices = map.apply_to_slices(slices);
+                intervals = map.apply_to_intervals(intervals);
             }
         }
     }
-    slices
+    intervals
 
 }
 
@@ -180,11 +180,11 @@ fn main() {
 
     dbg!(seeds.iter().map(|s| apply_all(&maps, *s)).min());
 
-    let seed_slices = seeds.chunks(2).map(
-        |w| Slice {start: w[0], end: w[0] + w[1]}
+    let seed_intervals = seeds.chunks(2).map(
+        |w| Interval {start: w[0], end: w[0] + w[1]}
     ).collect();
 
-    dbg!(apply_all_slices(&maps, seed_slices).iter().map(|s| s.start).min());
+    dbg!(apply_all_intervals(&maps, seed_intervals).iter().map(|s| s.start).min());
 
 
 
