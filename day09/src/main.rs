@@ -11,12 +11,12 @@ fn main() {
     ).collect();
 
     let result: i32 = histories.iter().map(
-        |h| process_pt1(h)
+        process_pt1
     ).sum();
     println!("{}", result);
 
     let result_pt2: i32 = histories.iter().map(
-        |h| process_pt2(h)
+        process_pt2
     ).sum();
     println!("{}", result_pt2);
 }
@@ -50,7 +50,7 @@ fn process_pt2(history: &Vec<i32>) -> i32 {
 
 }
 
-fn process_one_step(history: &Vec<i32>) -> Vec<i32> {
+fn process_one_step(history: &[i32]) -> Vec<i32> {
     history.windows(2)
         .map(|w| w[1]-w[0]).collect()
 }
