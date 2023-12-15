@@ -50,8 +50,8 @@ fn main() {
 
     // Part 2
     // Idea: Iterate over the tiles in the grid, row by row.
-    // A specific tile is inside the loop if the number of intersections
-    // with the loop (counted from the beginning of the row) is odd.
+    // A specific tile is inside the loop iff the number of intersections with the loop,
+    // counted from the beginning of the row, is odd (Jordan curve theorem).
     let mut n_inside = 0;
 
     for (i, line) in grid.iter().enumerate() {
