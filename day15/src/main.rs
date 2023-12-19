@@ -4,6 +4,46 @@ use std::io::{BufReader, prelude::*};
 
 use indexmap::IndexMap;
 
+struct LensLibrary<'a> {
+    boxes: HashMap<i32, IndexMap<&'a str, u32>>
+}
+
+impl<'a> LensLibrary<'a> {
+    fn perform_single_operation(&mut self, op: &'a str) {
+        if op.contains('=') {
+            let mut iter = op.split('=');
+            let label = iter.next().unwrap();
+            let focal_length: u32 = iter.next().unwrap().parse().unwrap();
+            let box_no = compute_hash(label);
+            let relevant_box = self.boxes.get_mut(&box_no).unwrap();
+            *relevant_box.entry(label).or_insert(focal_length) = focal_length;
+        } else {
+            let mut iter = op.split('-');
+            let label = iter.next().unwrap();
+            let box_no = compute_hash(label);
+            let relevant_box = self.boxes.get_mut(&box_no).unwrap();
+            relevant_box.shift_remove(label);
+        }
+
+    }
+
+    fn get_focusing_power(self) -> i32 {
+        self.boxes.iter().flat_map(
+            |(box_no, lenses)| lenses.iter().enumerate().map(
+                |(i, (_, lens))| (*box_no + 1) * (i as i32 + 1) * *lens as i32
+            )
+        ).sum()
+    }
+
+    fn new() -> Self {
+        let mut boxes: HashMap<i32, IndexMap<&str, u32>>  = HashMap::new();
+        for i in 0..256 {
+            boxes.insert(i, IndexMap::new());
+        }
+    Self { boxes }
+    }
+}
+
 fn compute_hash(string: &str) -> i32 {
     let mut current = 0;
     for char in string.chars() {
@@ -20,40 +60,14 @@ fn main() {
     for string in line[0].split(',') {
         total += compute_hash(string) as u32;
     }
-    println!("{}", total);
+    println!("Total hash (Part 1): {}", total);
 
-    let mut boxes: HashMap<i32, IndexMap<&str, u32>>  = HashMap::new();
-    for i in 0..256 {
-        boxes.insert(i, IndexMap::new());
-    }
-
+    let mut lens_library = LensLibrary::new();
     for operation in line[0].split(',') {
-        if operation.contains('=') {
-            let mut iter = operation.split('=');
-            let label = iter.next().unwrap();
-            let focal_length: u32 = iter.next().unwrap().parse().unwrap();
-            let box_no = compute_hash(label);
-            let relevant_box = boxes.get_mut(&box_no).unwrap();
-            *relevant_box.entry(label).or_insert(focal_length) = focal_length;
-        } else {
-            let mut iter = operation.split('-');
-            let label = iter.next().unwrap();
-            let box_no = compute_hash(label);
-            let relevant_box = boxes.get_mut(&box_no).unwrap();
-            relevant_box.shift_remove(label);
-        }
+        lens_library.perform_single_operation(operation);
     }
 
-    let mut focusing_power = 0;
-
-    for (box_no, lenses) in boxes {
-        for (i, (_, lens)) in lenses.iter().enumerate() {
-            let lens_focusing_power = (box_no + 1) * (i as i32 + 1) * *lens as i32;
-            focusing_power += lens_focusing_power;
-        }
-    }
-
-    println!("{}", focusing_power);
+    println!("Lens config focusing power: {}", lens_library.get_focusing_power());
 
 
 }
